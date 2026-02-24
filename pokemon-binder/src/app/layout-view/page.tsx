@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -21,7 +21,7 @@ type Slot = {
   owned_card_id: string | null;
 };
 
-export default function LayoutViewPage() {
+function LayoutViewInner() {
   const sp = useSearchParams();
   const binderId = sp.get("id");
 
@@ -74,8 +74,8 @@ export default function LayoutViewPage() {
 
   async function ensureSlot(row: number, col: number) {
     if (!binderId) return null;
-    let s = getSlot(row, col);
-    if (s) return s;
+    const existing = getSlot(row, col);
+    if (existing) return existing;
 
     const ins = await supabase
       .from("binder_slots")
@@ -228,7 +228,11 @@ export default function LayoutViewPage() {
                     textAlign: "left",
                   }}
                 >
-                  <img src={c.image_small ?? ""} alt="" style={{ width: 60, borderRadius: 8, background: "#f4f4f4" }} />
+                  <img
+                    src={c.image_small ?? ""}
+                    alt=""
+                    style={{ width: 60, borderRadius: 8, background: "#f4f4f4" }}
+                  />
                   <div style={{ fontSize: 13 }}>
                     <div style={{ fontWeight: 800 }}>{c.set_name ?? "Unknown set"}</div>
                     <div style={{ opacity: 0.8 }}>#{c.card_number ?? "?"}</div>
@@ -241,5 +245,13 @@ export default function LayoutViewPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function LayoutViewPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: 16, fontFamily: "system-ui" }}>Loading…</main>}>
+      <LayoutViewInner />
+    </Suspense>
   );
 }
