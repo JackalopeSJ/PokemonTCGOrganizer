@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -76,7 +76,7 @@ function buildCardQuery(raw: string, pokemonName: string) {
   return parts.join(" ");
 }
 
-export default function PokemonPage() {
+function PokemonInner() {
   const sp = useSearchParams();
   const binderId = sp.get("binder");
   const dexStr = sp.get("dex");
@@ -127,7 +127,6 @@ export default function PokemonPage() {
   }, [binderId, dexStr]);
 
   async function refreshPricesIfStale(list: OwnedCard[]) {
-    // fetch directly from PokemonTCG API
     const STALE_MS = 1000 * 60 * 60 * 24; // 24h
     const now = Date.now();
 
@@ -238,7 +237,8 @@ export default function PokemonPage() {
       </h1>
 
       <div style={{ fontSize: 13, opacity: 0.75, marginBottom: 14 }}>
-        Owned: {bp?.owned_count ?? 0} • Target: {bp?.target_count ?? 0} • Need: {Math.max(0, (bp?.target_count ?? 0) - (bp?.owned_count ?? 0))}
+        Owned: {bp?.owned_count ?? 0} • Target: {bp?.target_count ?? 0} • Need:{" "}
+        {Math.max(0, (bp?.target_count ?? 0) - (bp?.owned_count ?? 0))}
       </div>
 
       <section style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, marginBottom: 16 }}>
@@ -295,14 +295,19 @@ export default function PokemonPage() {
           return (
             <div key={c.id} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
               <div style={{ display: "flex", gap: 12 }}>
-                <img src={c.image_small ?? ""} alt={c.tcg_card_id} style={{ width: 84, borderRadius: 8, background: "#f4f4f4" }} />
+                <img
+                  src={c.image_small ?? ""}
+                  alt={c.tcg_card_id}
+                  style={{ width: 84, borderRadius: 8, background: "#f4f4f4" }}
+                />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 800 }}>
                     {c.set_name ?? "Unknown set"} • #{c.card_number ?? "?"} • {c.rarity ?? "?"}
                   </div>
 
                   <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>
-                    TCGplayer — Market: {market ? `$${market}` : "—"} • Low: {low ? `$${low}` : "—"} • Mid: {mid ? `$${mid}` : "—"} • High: {high ? `$${high}` : "—"}
+                    TCGplayer — Market: {market ? `$${market}` : "—"} • Low: {low ? `$${low}` : "—"} • Mid:{" "}
+                    {mid ? `$${mid}` : "—"} • High: {high ? `$${high}` : "—"}
                   </div>
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
@@ -388,5 +393,13 @@ export default function PokemonPage() {
         {owned.length === 0 && <div style={{ opacity: 0.7 }}>No cards logged for this Pokémon yet.</div>}
       </div>
     </main>
+  );
+}
+
+export default function PokemonPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: 16, fontFamily: "system-ui" }}>Loading…</main>}>
+      <PokemonInner />
+    </Suspense>
   );
 }
